@@ -19,8 +19,6 @@ filenames:
 labels:
 type: traefik
 
-text
-
 ### 2.2 Collections
 The following collections are pre-configured in the `docker-compose.yml` environment variables:
 *   `crowdsecurity/traefik`: Parsers and scenarios specific to Traefik access logs.
@@ -34,23 +32,15 @@ To interact with the CrowdSec agent (CSCLI), execute commands inside the running
 **List active decisions (bans):**
 docker exec crowdsec_ips cscli decisions list
 
-text
-
 **Manually ban an IP (e.g., for testing):**
 docker exec crowdsec_ips cscli decisions add --ip 192.0.2.1 --reason "Manual compliance block"
-
-text
 
 **Unban an IP:**
 docker exec crowdsec_ips cscli decisions delete --ip 192.0.2.1
 
-text
-
 **Update Hub (Parsers/Scenarios):**
 docker exec crowdsec_ips cscli hub update
 docker exec crowdsec_ips cscli hub upgrade
-
-text
 
 ## 4. Remediation (Bouncers)
 This template configures the **Detection Engine** only. To actively drop traffic, you must deploy a "Bouncer".
