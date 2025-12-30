@@ -31,15 +31,11 @@ cd secure-docker-stack-template
 chmod +x init.sh
 ./init.sh
 
-text
-
 ### 2. Configuration
 Copy the environment template and adjust variables.
 
 cp .env.example .env
 nano .env
-
-text
 
 **Required adjustments:**
 *   `DOMAIN_NAME`: Your primary domain (e.g., `services.example.com`).
@@ -50,15 +46,11 @@ Start the stack in detached mode.
 
 docker compose up -d
 
-text
-
 ### 4. Verification
 Check container status and logs to ensure the proxy is binding to ports 80/443 correctly.
 
 docker compose ps
 docker compose logs -f traefik
-
-text
 
 ## Security & Compliance Notes
 
