@@ -1,0 +1,76 @@
+services:
+  # Traefik Reverse Proxy - Edge Router
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik_edge
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CF_API_EMAIL=${ACME_EMAIL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # For production, consider socket-proxy
+      - ./traefik/acme.json:/acme.json
+      - ./logs/traefik:/var/log/traefik
+    command:
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+    networks:
+      - public_web
+
+  # CrowdSec - IPS & Log Analysis
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec_ips
+    restart: unless-stopped
+    environment:
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve
+    volumes:
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml
+      - ./crowdsec/db:/var/lib/crowdsec/data
+      - ./crowdsec/config:/etc/crowdsec
+      - ./logs/traefik:/var/log/traefik:ro
+    networks:
+      - public_web
+    
+  # Demo Service (Compliance Check / Whoami)
+  # Remove this service in production
+  whoami:
+    image: traefik/whoami
+    container_name: compliance_check_service
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+      - "traefik.http.routers.whoami.middlewares=sec-headers"
+      # Compliance Headers
+      - "traefik.http.middlewares.sec-headers.headers.sslredirect=true"
+      - "traefik.http.middlewares.sec-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.sec-headers.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.sec-headers.headers.contentTypeNosniff=true"
+    networks:
+      - public_web
+
+networks:
+  public_web:
+    driver: bridge
